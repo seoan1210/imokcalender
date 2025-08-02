@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>이목중학교 일정</title>
+    <style>
+        /* 기본 스타일 (모바일 우선) */
+        body { 
+            font-family: 'Malgun Gothic', 'Apple SD Gothic Neo', sans-serif; 
+            margin: 0; 
+            background-color: #f4f7f6; 
+            color: #333; 
+            display: flex; 
+            justify-content: center; 
+            align-items: flex-start; 
+            min-height: 100vh; 
+            padding: 10px; /* 모바일에서 여백 줄임 */
+            box-sizing: border-box; 
+        }
+        .calendar-wrapper { 
+            background-color: #fff; 
+            padding: 15px; /* 모바일에서 패딩 줄임 */
+            border-radius: 12px; 
+            box-shadow: 0 8px 20px rgba(0,0,0,0.1); 
+            max-width: 600px; 
+            width: 100%; /* 모바일에서 꽉 채우기 */
+            text-align: center; 
+            box-sizing: border-box;
+        }
+        h1 { 
+            color: #2c3e50; 
+            font-size: 24px; /* 모바일에서 글씨 크기 줄임 */
+            margin-bottom: 20px; 
+            border-bottom: 2px solid #3498db; 
+            padding-bottom: 10px; 
+            display: inline-block; 
+        }
+        .header { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 20px; 
+            padding: 0 5px; 
+        }
+        .header button { 
+            background-color: #3498db; 
+            color: white; 
+            border: none; 
+            padding: 8px 12px; /* 모바일에서 버튼 패딩 줄임 */
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 14px; /* 모바일에서 버튼 폰트 크기 줄임 */
+            font-weight: bold; 
+            transition: background-color 0.3s ease; 
+        }
+        .header button:hover { background-color: #2980b9; }
+        .header .current-month-year { 
+            font-size: 20px; /* 모바일에서 글씨 크기 줄임 */
+            font-weight: bold; 
+            color: #34495e; 
+        }
+
+        .calendar-grid { 
+            display: grid; 
+            grid-template-columns: repeat(7, 1fr); 
+            gap: 5px; /* 모바일에서 간격 줄임 */
+            width: 100%; 
+        }
+        .day-name { 
+            background-color: #ecf0f1; 
+            color: #7f8c8d; 
+            padding: 10px 0; /* 모바일에서 패딩 줄임 */
+            font-weight: bold; 
+            border-radius: 4px; 
+            font-size: 12px; /* 모바일에서 폰트 크기 줄임 */
+        }
+        .day-cell { 
+            background-color: #fff; 
+            padding: 10px 3px; /* 모바일에서 패딩 줄임 */
+            border-radius: 4px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); 
+            min-height: 80px; /* 모바일에서 최소 높이 줄임 */
+            display: flex; 
+            flex-direction: column; 
+            align-items: flex-start; 
+            text-align: left; 
+            position: relative; 
+            /* overflow: hidden; */ /* 일정이 잘리지 않도록 overflow:hidden 제거 또는 필요시 auto */
+        }
+        .day-number { 
+            font-size: 16px; /* 모바일에서 폰트 크기 줄임 */
+            font-weight: bold; 
+            color: #2c3e50; 
+            margin-bottom: 5px; 
+            padding-left: 5px; 
+        }
+        .day-cell.other-month .day-number { color: #bdc3c7; }
+        .day-cell.current-day { border: 2px solid #e74c3c; }
+        .event-list { 
+            list-style: none; 
+            padding: 0 5px; 
+            margin: 0; 
+            font-size: 10px; /* 모바일에서 이벤트 폰트 크기 줄임 */
+            color: #555; 
+            /* max-height: 45px; */ /* 일정이 잘리지 않도록 높이 제한 제거 */
+            /* overflow: hidden; */ /* 일정이 잘리지 않도록 overflow:hidden 제거 또는 필요시 auto */
+            white-space: normal; /* 텍스트가 여러 줄로 감싸지도록 허용 */
+        }
+        .event-list li { 
+            margin-bottom: 2px; 
+            white-space: normal; /* 텍스트가 여러 줄로 감싸지도록 허용 */
+            overflow: hidden; 
+            text-overflow: ellipsis; /* 한 줄일 때 말줄임표 유지 (필요시 제거) */
+            padding-left: 6px; 
+            border-left: 2px solid #3498db; /* 모바일에서 테두리 두께 줄임 */
+            line-height: 1.2; 
+        }
+        .no-events { font-size: 10px; color: #999; text-align: center; padding-top: 5px; }
+        
+        .loading, .error-message { 
+            grid-column: span 7; 
+            padding: 20px; 
+            text-align: center; 
+            font-size: 16px; 
+            color: #7f8c8d; 
+        }
+        .error-message { color: #e74c3c; font-weight: bold; }
+
+        /* 중간 크기 화면 (태블릿 등) */
+        @media (min-width: 481px) {
+            body { padding: 15px; }
+            .calendar-wrapper { padding: 25px; }
+            h1 { font-size: 26px; margin-bottom: 25px; padding-bottom: 12px; }
+            .header button { padding: 9px 15px; font-size: 15px; }
+            .header .current-month-year { font-size: 24px; }
+            .calendar-grid { gap: 6px; }
+            .day-name { padding: 11px 0; font-size: 13px; }
+            .day-cell { padding: 12px 4px; min-height: 90px; }
+            .day-number { font-size: 18px; }
+            .event-list { 
+                font-size: 11px; 
+                /* max-height: 55px; */ /* 일정이 잘리지 않도록 높이 제한 제거 */
+            }
+            .event-list li { padding-left: 7px; border-left: 2.5px solid #3498db; }
+            .loading, .error-message { padding: 30px; font-size: 17px; }
+        }
+
+        /* 큰 화면 (데스크톱) */
+        @media (min-width: 769px) {
+            body { padding: 20px; }
+            .calendar-wrapper { padding: 30px; max-width: 800px; } /* 데스크톱에서 최대 너비 확장 */
+            h1 { font-size: 28px; margin-bottom: 30px; padding-bottom: 15px; }
+            .header button { padding: 10px 18px; font-size: 16px; }
+            .header .current-month-year { font-size: 28px; }
+            .calendar-grid { gap: 8px; }
+            .day-name { padding: 12px 0; font-size: 14px; }
+            .day-cell { padding: 15px 5px; min-height: 100px; }
+            .day-number { font-size: 20px; }
+            .event-list { 
+                font-size: 12px; 
+                /* max-height: 60px; */ /* 일정이 잘리지 않도록 높이 제한 제거 */
+            }
+            .event-list li { padding-left: 8px; border-left: 3px solid #3498db; }
+            .loading, .error-message { padding: 40px; font-size: 18px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-wrapper">
+        <h1>이목중학교 일정</h1>
+        <div class="header">
+            <button onclick="changeMonth(-1)">이전 달</button>
+            <span class="current-month-year" id="currentMonthYear"></span>
+            <button onclick="changeMonth(1)">다음 달</button>
+        </div>
+        <div class="calendar-grid">
+            <div class="day-name">일</div>
+            <div class="day-name">월</div>
+            <div class="day-name">화</div>
+            <div class="day-name">수</div>
+            <div class="day-name">목</div>
+            <div class="day-name">금</div>
+            <div class="day-name">토</div>
+            </div>
+    </div>
+
+    <script>
+        let currentYear;
+        let currentMonth;
+        const today = new Date(); // 오늘 날짜를 미리 저장
+
+        function updateMonthYearDisplay() {
+            const date = new Date(currentYear, currentMonth - 1);
+            const options = { year: 'numeric', month: 'long' };
+            document.getElementById('currentMonthYear').textContent = date.toLocaleDateString('ko-KR', options);
+        }
+
+        async function fetchCalendarData(year, month) {
+            const calendarGrid = document.querySelector('.calendar-grid');
+            calendarGrid.innerHTML = `
+                <div class="day-name">일</div>
+                <div class="day-name">월</div>
+                <div class="day-name">화</div>
+                <div class="day-name">수</div>
+                <div class="day-name">목</div>
+                <div class="day-name">금</div>
+                <div class="day-name">토</div>
+                <div class="loading">데이터를 불러오는 중...</div>
+            `; // 로딩 메시지 표시
+
+            try {
+                const response = await fetch(`/api/school_calendar?year=${year}&month=${month}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const events = await response.json();
+                
+                renderCalendar(events);
+            } catch (error) {
+                console.error("Error fetching calendar data:", error);
+                calendarGrid.innerHTML = `
+                    <div class="day-name">일</div>
+                    <div class="day-name">월</div>
+                    <div class="day-name">화</div>
+                    <div class="day-name">수</div>
+                    <div class="day-name">목</div>
+                    <div class="day-name">금</div>
+                    <div class="day-name">토</div>
+                    <div class="error-message">학사일정 데이터를 불러오지 못했습니다.</div>
+                `;
+            }
+        }
+
+        function renderCalendar(events) {
+            const calendarGrid = document.querySelector('.calendar-grid');
+            
+            // 기존 요일명 제외하고 날짜 셀만 지우기
+            let dayNames = '';
+            for(let i = 0; i < 7; i++) {
+                dayNames += calendarGrid.children[i].outerHTML;
+            }
+            calendarGrid.innerHTML = dayNames; // 요일명만 남기고 초기화
+
+            const eventMap = new Map();
+            events.forEach(event => {
+                if (!eventMap.has(event.date)) {
+                    eventMap.set(event.date, []);
+                }
+                eventMap.get(event.date).push(...event.events);
+            });
+
+            // 해당 월의 첫 날과 마지막 날 계산
+            const firstDayOfMonth = new Date(currentYear, currentMonth - 1, 1);
+            const lastDayOfMonth = new Date(currentYear, currentMonth, 0);
+            const daysInMonth = lastDayOfMonth.getDate();
+
+            // 달력 시작 요일 맞추기 (일요일=0, 월요일=1, ...)
+            const startDay = firstDayOfMonth.getDay(); // 0 (일) ~ 6 (토)
+
+            // 이전 달의 마지막 날짜부터 채워넣기 (빈 칸 채우기)
+            const prevMonthLastDay = new Date(currentYear, currentMonth - 1, 0).getDate();
+            for (let i = startDay - 1; i >= 0; i--) {
+                const cell = document.createElement('div');
+                cell.classList.add('day-cell', 'other-month');
+                cell.innerHTML = `<div class="day-number">${prevMonthLastDay - i}</div>`;
+                calendarGrid.appendChild(cell);
+            }
+
+            // 현재 월의 날짜 채우기
+            for (let i = 1; i <= daysInMonth; i++) {
+                const date = new Date(currentYear, currentMonth - 1, i);
+                const dateString = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(i).padStart(2, '0')}`;
+                const displayEvents = eventMap.has(dateString) ? eventMap.get(dateString) : [];
+
+                const cell = document.createElement('div');
+                cell.classList.add('day-cell');
+                
+                // 오늘 날짜인 경우 클래스 추가
+                if (date.getFullYear() === today.getFullYear() && 
+                    date.getMonth() === today.getMonth() && 
+                    date.getDate() === today.getDate()) {
+                    cell.classList.add('current-day');
+                }
+
+                cell.innerHTML = `<div class="day-number">${i}</div>`;
+                
+                if (displayEvents.length > 0) {
+                    const ul = document.createElement('ul');
+                    ul.classList.add('event-list');
+                    displayEvents.forEach(eventText => {
+                        const li = document.createElement('li');
+                        // 유니코드 이스케이프 (\ud559\ub144)를 실제 한글로 변환
+                        li.textContent = eventText.replace(/\\u([0-9a-fA-F]{4})/g, (match, p1) => String.fromCharCode(parseInt(p1, 16)));
+                        ul.appendChild(li);
+                    });
+                    cell.appendChild(ul);
+                } else {
+                    const noEventDiv = document.createElement('div');
+                    noEventDiv.classList.add('no-events');
+                    noEventDiv.textContent = '일정 없음';
+                    // cell.appendChild(noEventDiv); // 이미지에서는 없는 날은 비워져있어서 일단 주석처리
+                }
+                calendarGrid.appendChild(cell);
+            }
+
+            // 다음 달의 날짜로 빈 칸 채우기
+            // 달력 셀이 총 6주(42칸)가 되도록 채웁니다.
+            const totalCellsAfterCurrentMonth = calendarGrid.children.length - 7; // 요일명 제외한 현재까지 채워진 셀 개수
+            const remainingCells = 42 - totalCellsAfterCurrentMonth; 
+
+            if (remainingCells > 0) {
+                for (let i = 1; i <= remainingCells; i++) {
+                    const cell = document.createElement('div');
+                    cell.classList.add('day-cell', 'other-month');
+                    cell.innerHTML = `<div class="day-number">${i}</div>`;
+                    calendarGrid.appendChild(cell);
+                }
+            }
+        }
+
+        function changeMonth(delta) {
+            currentMonth += delta;
+            if (currentMonth > 12) {
+                currentMonth = 1;
+                currentYear++;
+            } else if (currentMonth < 1) {
+                currentMonth = 12;
+                currentYear--;
+            }
+            updateMonthYearDisplay();
+            fetchCalendarData(currentYear, currentMonth);
+        }
+
+        // 페이지 로드 시 초기화
+        window.onload = () => {
+            currentYear = today.getFullYear();
+            currentMonth = today.getMonth() + 1;
+            updateMonthYearDisplay();
+            fetchCalendarData(currentYear, currentMonth);
+        };
+    </script>
+</body>
+</html>
